@@ -1,0 +1,35 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Login Test</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <h2>Login med Google</h2>
+    <button onclick="login()">Logg inn med Google</button>
+    <pre id="token"></pre>
+
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCWCB5-ZMDOCNgFF7a0MtxRctGHdnfd3nk",
+        authDomain: "jobtrakingapp.firebaseapp.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    function login() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).then(result => {
+        result.user.getIdToken().then(idToken => {
+          document.getElementById('token').innerText = idToken;
+          console.log("✅ ID Token:", idToken);
+        });
+      }).catch(err => {
+        console.error("Login error", err);
+      });
+    }
+    </script>
+</body>
+</html>
