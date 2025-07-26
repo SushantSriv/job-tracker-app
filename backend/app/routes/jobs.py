@@ -6,7 +6,7 @@ from app.schemas import JobCreate, JobUpdate, Job, AvailableJobUpdate, JobApplic
 from app.routes.auth import get_current_user
 from datetime import timedelta
 from pydantic import BaseModel
-
+from app.utils.email import send_status_email
 
 router = APIRouter()
 
@@ -37,8 +37,13 @@ def create_job(job: JobCreate, db: Session = Depends(get_db), user=Depends(get_c
     return job_obj
 
 @router.put("/jobs/{job_id}", response_model=Job)
-def update_job(job_id: int, payload: JobUpdate | StatusUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    # For admin: tillat oppdatering av status
+def update_job(
+    job_id: int,
+    payload: JobUpdate | StatusUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    # Hent søknaden: admin kan oppdatere alle, bruker kun sin egen
     job = db.query(JobApplication).filter(JobApplication.id == job_id).first() \
         if user.is_admin else \
         db.query(JobApplication).filter_by(id=job_id, user_id=user.id).first()
@@ -46,13 +51,21 @@ def update_job(job_id: int, payload: JobUpdate | StatusUpdate, db: Session = Dep
     if not job:
         raise HTTPException(status_code=404, detail="Søknad ikke funnet")
 
-    # Oppdater tillatte felt
     update_data = payload.dict(exclude_unset=True)
+    status_changed = 'status' in update_data and update_data['status'] != job.status
+
     for key, value in update_data.items():
         setattr(job, key, value)
 
     db.commit()
     db.refresh(job)
+
+    # 💬 Send e-post hvis status er oppdatert av admin
+    if job.user and job.user.email:
+        try:
+            send_status_email(to_email=job.user.email, job_title=job.job_title, new_status=job.status)
+        except Exception as e:
+            print(f"❌ Kunne ikke sende e-post: {e}")
 
     if job.status == "avslått":
         redis_client.setex(f"rejected_job:{job.id}", timedelta(days=30), "marked")

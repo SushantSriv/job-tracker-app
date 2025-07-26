@@ -6,3 +6,4 @@ python-jose[cryptography]
 redis
 python-dotenv
 requests
+sendgrid
