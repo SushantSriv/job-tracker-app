@@ -2,13 +2,37 @@
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, redis_client, Base, engine
 from app import models
-from app.auth import verify_google_token, create_jwt_token,get_current_user
+from app.routes.auth import verify_google_token, create_jwt_token, get_current_user
 from dotenv import load_dotenv
+from app.routes import auth as auth_routes
+from app.routes import jobs , available_jobs
+from app.background_tasks import purge_rejected_jobs
+from fastapi.middleware.cors import CORSMiddleware
+from app.routes import admin
+
+
+
+
 
 # 📦 Last inn .env-variabler
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+app.include_router(auth_routes.router)
+app.include_router(jobs.router)
+app.include_router(available_jobs.router)
+app.include_router(admin.router)
+
 
 # ⚙️ Opprett DB-tabeller (kun én gang)
 Base.metadata.create_all(bind=engine)
@@ -34,29 +58,16 @@ def ping(db: Session = Depends(get_db)):
         "redis": redis_client.get("status")
     }
 
-# 🔐 Login-rute – bruk denne fra frontend etter Google-login
-@app.post("/login")
-def login(id_token: str = Body(...), db: Session = Depends(get_db)):
-    # 1. Verifiser token mot Google
-    user_info = verify_google_token(id_token)
-
-    # 2. Finn eller opprett bruker i databasen
-    user = db.query(models.User).filter(models.User.google_id == user_info["google_id"]).first()
-    if not user:
-        user = models.User(
-            google_id=user_info["google_id"],
-            email=user_info["email"],
-            full_name=user_info.get("full_name")
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-    # 3. Lag JWT-token (inneholder bare bruker-id)
-    token = create_jwt_token({"user_id": user.id})
-
-    return {"access_token": token}
-
 @app.get("/me")
 def read_current_user(user: models.User = Depends(get_current_user)):
-    return {"id": user.id, "email": user.email, "name": user.full_name}
+    return {
+        "id": user.id,
+        "email": user.email,
+        "name": user.full_name,
+        "is_admin": user.is_admin
+    }
+
+
+@app.on_event("startup")
+def cleanup_on_start():
+    purge_rejected_jobs()
