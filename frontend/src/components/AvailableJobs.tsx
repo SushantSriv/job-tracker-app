@@ -96,12 +96,12 @@ export default function AvailableJobs({
             }}>
                 {visibleJobs.map((job) => (
                     <div key={job.id} style={{
-                        border: '1px solid #ccc',
+                        border: '3px solid #ccc',
                         padding: '1rem',
                         borderRadius: '8px',
-                        width: '280px',
+                        width: '400px',
                         background: '#fff',
-                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between'
@@ -110,7 +110,7 @@ export default function AvailableJobs({
                             {/* 🖼️ Logo + Firmanavn med link */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
                                 {job.logo_url && (
-                                    <img src={job.logo_url} alt="logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+                                    <img src={job.logo_url} alt="logo" style={{ width: '100px', height: '100px', objectFit: 'contain' }} />
                                 )}
                                 {job.company_link ? (
                                     <a href={job.company_link} target="_blank" rel="noreferrer" style={{ fontWeight: 'bold', fontSize: '1rem', textDecoration: 'none', color: '#0275d8' }}>
@@ -123,7 +123,7 @@ export default function AvailableJobs({
 
                             {/* 📝 Tittel og beskrivelse */}
                             <strong>{job.title}</strong>
-                            <p style={{ fontSize: '0.9rem', color: '#444' }}>{job.description}</p>
+                            <p style={{ fontSize: '1rem', color: '#444' }}>{job.description}</p>
                         </div>
 
                         {/* 🔘 Knapper */}
